@@ -1,0 +1,22 @@
+{
+  "name": "imagecompact-backend",
+  "version": "1.0.0",
+  "description": "Image Compactor API",
+  "main": "main.js",
+  "scripts": {
+    "start": "node main.js"
+  },
+  "keywords": [],
+  "author": "AHMAD BADERKHAN",
+  "license": "ISC",
+  "dependencies": {
+    "aws-sdk": "^2.1082.0",
+    "body-parser": "^1.19.2",
+    "express": "^4.17.3",
+    "express-body": "^1.0.6",
+    "imagemin": "^8.0.1",
+    "imagemin-jpegtran": "^7.0.0",
+    "uuid": "^8.3.2",
+    "uuid-v4": "^0.1.0"
+  }
+}
