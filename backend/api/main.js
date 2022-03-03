@@ -5,9 +5,6 @@ const sns = new SNS();
 const db = new DynamoDB();
 const express = require('express');
 const app = express();
-const TMP_IMAGE_LOCATION = '/tmp/images';
-const imageMin = require('imagemin');
-const fs = require('fs');
 const SUPPORTED_IMAGE_TYPE = ['png', 'jpg', 'jpeg', 'gif', 'svg'];
 const uuid = require('uuid-v4')
 const IMAGE_PROCESS_STATUS = {
@@ -65,6 +62,7 @@ app.post('/original-images', async (req, res) => {
             uploaded_on: new Date(),
             status: IMAGE_PROCESS_STATUS.NOT_STARTED,
             s3_keypath,
+            compressed_s3_keypath: '',
 
         }
     })
@@ -127,4 +125,42 @@ app.post('/compressed-images', async (req, res) => {
 
 })
 
-app.post('/compressed-images/:id')
+app.get('/compressed-images/:id/status', async (req, res) => {
+    return await db.getItem({
+        TableName: DYNAMO_TABLE,
+        Key: req.param('id'),
+    })
+        .promise()
+        .then((data) => res.send(200, data.Item))
+        .catch((err) => res.send(404, `Item not found , please make sure it's part of the job`))
+})
+
+
+app.post('/compressed-images/:id/presigned-url', async (req, res) => {
+    const item = await db.getItem({
+        TableName: DYNAMO_TABLE,
+        Key: req.param('id'),
+    })
+        .promise()
+        .then((data) => data.Item)
+        .catch(() => false)
+    if (!item) {
+        return res.send(404, 'image_id not found')
+    } else if (item.status != IMAGE_PROCESS_STATUS.DONE) {
+        return res.send(400, `cannot request an image that is in progress or that failed ..etc. Must be Done Processing`)
+    }
+
+    const image_url = await s3.getSignedUrlPromise('getObject', {
+        Bucket: S3_BUCKET,
+        Key: item.compressed_s3_keypath
+    }).catch((err) => false)
+
+    if (!image_url) {
+        return res.send(500, 'could not fetch image due to failure in presistence layer !')
+    }
+
+    return res.send(201, {
+        message: 'ok presign url created',
+        data: image_url
+    })
+})
