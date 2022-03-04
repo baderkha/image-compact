@@ -13,11 +13,13 @@ const IMAGE_PROCESS_STATUS = {
     FAILED: 'FAILED',
     NOT_STARTED: 'NOT_STARTEDF'
 }
+const {Arnifier} = require('../util');
+const arnifySns = new Arnifier().service('sns');
 
 
 const S3_BUCKET = 'image_compact_uploads';
 const DYNAMO_TABLE = 'image_compact_jobs';
-const SNS_TOPIC = 'image_compact_job_process';
+const SNS_TOPIC = 'image-compact_JOB-PROCESS';
 
 
 app.post('/original-images', async (req, res) => {
@@ -62,11 +64,13 @@ app.post('/original-images', async (req, res) => {
             uploaded_on: new Date(),
             status: IMAGE_PROCESS_STATUS.NOT_STARTED,
             s3_keypath,
+            bucket_original:S3_BUCKET,
             compressed_s3_keypath: '',
 
         }
     })
         .promise())
+        
     return res.send(201, {
         data: {
             image_id: imageId,
@@ -114,7 +118,7 @@ app.post('/compressed-images', async (req, res) => {
 
 
     await sns.publish({
-        TopicArn: SNS_TOPIC,
+        TopicArn: await arnifySns(SNS_TOPIC),
         Message: JSON.stringify({ image_info: updatedItem, compression_options })
     }).promise()
 
@@ -164,3 +168,6 @@ app.post('/compressed-images/:id/presigned-url', async (req, res) => {
         data: image_url
     })
 })
+
+
+module.exports = app
